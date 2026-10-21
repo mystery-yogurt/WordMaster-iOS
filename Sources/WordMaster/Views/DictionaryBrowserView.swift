@@ -13,12 +13,20 @@ public struct DictionaryBrowserView: View {
     private var filteredVocabulary: [OfflineDictionaryEntry] {
         let all = OfflineDictionaryService.shared.vocabulary
         if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return Array(all.prefix(100))
+            return all
         } else {
             return all.filter {
                 $0.word.localizedCaseInsensitiveContains(searchQuery) ||
                 $0.translation.localizedCaseInsensitiveContains(searchQuery)
             }
+        }
+    }
+    
+    private var sectionTitle: String {
+        if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Слова (1000)"
+        } else {
+            return "Слова (\(filteredVocabulary.count))"
         }
     }
     
@@ -31,7 +39,7 @@ public struct DictionaryBrowserView: View {
                         .foregroundStyle(Color.secondary)
                 }
                 
-                Section("Слова (\(filteredVocabulary.count))") {
+                Section(sectionTitle) {
                     ForEach(filteredVocabulary) { item in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
