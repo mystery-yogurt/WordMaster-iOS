@@ -1,0 +1,92 @@
+name: Build WordMaster iOS Simulator App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-simulator-app:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build Universal iOS Simulator App Bundle
+        run: |
+          SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          
+          mkdir -p WordMaster.app
+          
+          SWIFT_FILES=$(find Sources/WordMaster -type f -name "*.swift")
+          echo "Compiling Swift files:"
+          echo "$SWIFT_FILES"
+          
+          # Компиляция ARM64 (Apple Silicon)
+          swiftc -target arm64-apple-ios17.0-simulator -sdk "$SDK_PATH" \
+            $SWIFT_FILES \
+            -o WordMaster_arm64
+
+          # Компиляция x86_64 (Intel)
+          swiftc -target x86_64-apple-ios17.0-simulator -sdk "$SDK_PATH" \
+            $SWIFT_FILES \
+            -o WordMaster_x86
+
+          # Объединение в универсальный исполняемый файл
+          lipo -create WordMaster_arm64 WordMaster_x86 -output WordMaster.app/WordMaster
+          
+          # Info.plist
+          cat << 'EOF' > WordMaster.app/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>WordMaster</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.student.wordmaster</string>
+              <key>CFBundleName</key>
+              <string>WordMaster</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>MinimumOSVersion</key>
+              <string>17.0</string>
+              <key>CFBundleSupportedPlatforms</key>
+              <array>
+                  <string>iPhoneSimulator</string>
+              </array>
+              <key>DTPlatformName</key>
+              <string>iphonesimulator</string>
+              <key>LSRequiresIPhoneOS</key>
+              <true/>
+              <key>UIDeviceFamily</key>
+              <array>
+                  <integer>1</integer>
+                  <integer>2</integer>
+              </array>
+              <key>UILaunchScreen</key>
+              <dict/>
+              <key>UISupportedInterfaceOrientations</key>
+              <array>
+                  <string>UIInterfaceOrientationPortrait</string>
+              </array>
+          </dict>
+          </plist>
+          EOF
+
+          # Цифровая подпись для симулятора
+          codesign --force --deep --sign - WordMaster.app
+
+      - name: Upload Simulator App
+        uses: actions/upload-artifact@v4
+        with:
+          name: WordMaster-Appetize
+          path: WordMaster.app
