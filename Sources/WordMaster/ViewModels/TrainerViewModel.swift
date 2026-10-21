@@ -41,20 +41,23 @@ public final class TrainerViewModel {
         guard let deck = selectedDeck ?? decks.first else { return }
         
         if let entry = OfflineDictionaryService.shared.lookup(word: word) {
-            let newCard = WordCard(
-                word: entry.word,
-                transcription: entry.transcription,
-                translation: entry.translation,
-                exampleSentence: entry.example,
-                deckId: deck.id,
-                repetitions: 0,
-                intervalDays: 1,
-                easinessFactor: 2.5,
-                nextReviewDate: Date()
-            )
-            cards.insert(newCard, at: 0)
-            saveData()
-            NotificationService.shared.rescheduleNearestReview(cards: cards)
+            // Проверяем, чтобы не дублировать существующее слово в колоде
+            if !cards.contains(where: { $0.deckId == deck.id && $0.word.lowercased() == entry.word.lowercased() }) {
+                let newCard = WordCard(
+                    word: entry.word,
+                    transcription: entry.transcription,
+                    translation: entry.translation,
+                    exampleSentence: entry.example,
+                    deckId: deck.id,
+                    repetitions: 0,
+                    intervalDays: 1,
+                    easinessFactor: 2.5,
+                    nextReviewDate: Date()
+                )
+                cards.insert(newCard, at: 0)
+                saveData()
+                NotificationService.shared.rescheduleNearestReview(cards: cards)
+            }
         }
     }
     
@@ -75,8 +78,12 @@ public final class TrainerViewModel {
         cards[index].easinessFactor = result.easinessFactor
         
         saveData()
-        
-        // Агрегация данных и перепланирование очереди уведомлений
+        NotificationService.shared.rescheduleNearestReview(cards: cards)
+    }
+    
+    public func deleteCard(id: UUID) {
+        cards.removeAll { $0.id == id }
+        saveData()
         NotificationService.shared.rescheduleNearestReview(cards: cards)
     }
     
