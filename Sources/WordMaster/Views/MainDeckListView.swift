@@ -4,6 +4,7 @@ public struct MainDeckListView: View {
     @State private var viewModel = TrainerViewModel()
     @State private var showingSession = false
     @State private var showingScanner = false
+    @State private var showingDictionaryBrowser = false
     
     public init() {}
     
@@ -46,37 +47,47 @@ public struct MainDeckListView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal)
                     
-                    // 3. Список личных словарей пользователя
+                    // 3. Список личных словарей пользователя (ТЕПЕРЬ КЛИКАБЕЛЬНЫ)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Мои словари")
-                            .font(.headline)
-                            .padding(.horizontal)
+                        HStack {
+                            Text("Мои словари")
+                                .font(.headline)
+                            Spacer()
+                            Text("Нажмите для просмотра")
+                                .font(.caption)
+                                .foregroundStyle(Color.secondary)
+                        }
+                        .padding(.horizontal)
                         
                         ForEach(viewModel.decks) { deck in
-                            let count = viewModel.getCardsForDeck(deck.id).count
-                            HStack(spacing: 14) {
-                                Image(systemName: deck.icon)
-                                    .font(.title2)
-                                    .foregroundStyle(Color.blue)
-                                    .frame(width: 44, height: 44)
-                                    .background(Color.blue.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(deck.title)
-                                        .font(.headline)
-                                    Text("\(count) слов в наборе")
+                            NavigationLink(destination: DeckDetailView(deck: deck, viewModel: viewModel)) {
+                                let count = viewModel.getCardsForDeck(deck.id).count
+                                HStack(spacing: 14) {
+                                    Image(systemName: deck.icon)
+                                        .font(.title2)
+                                        .foregroundStyle(Color.blue)
+                                        .frame(width: 44, height: 44)
+                                        .background(Color.blue.opacity(0.12))
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(deck.title)
+                                            .font(.headline)
+                                            .foregroundStyle(Color.primary)
+                                        Text("\(count) слов в наборе")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
                                         .font(.caption)
                                         .foregroundStyle(Color.secondary)
                                 }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.secondary)
+                                .padding(14)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
-                            .padding(14)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .buttonStyle(.plain)
                             .padding(.horizontal)
                         }
                     }
@@ -85,6 +96,19 @@ public struct MainDeckListView: View {
             }
             .navigationTitle("WordMaster")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingDictionaryBrowser = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "books.vertical.fill")
+                            Text("Каталог (1000)")
+                        }
+                        .font(.footnote)
+                        .fontWeight(.medium)
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingScanner = true
@@ -103,6 +127,9 @@ public struct MainDeckListView: View {
             }
             .sheet(isPresented: $showingScanner) {
                 ScannerView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingDictionaryBrowser) {
+                DictionaryBrowserView(viewModel: viewModel)
             }
         }
     }
